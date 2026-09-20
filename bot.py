@@ -28,6 +28,7 @@ from aiogram.types import (
 )
 from dotenv import load_dotenv
 from PIL import Image, UnidentifiedImageError
+import imageio_ffmpeg
 
 load_dotenv()
 
@@ -35,7 +36,12 @@ TOKEN = os.getenv("BOT_TOKEN", "").strip()
 BOT_API_BASE = os.getenv("BOT_API_BASE", "").strip().rstrip("/")
 BOT_API_LOCAL = os.getenv("BOT_API_LOCAL", "0").strip() == "1"
 
-FFMPEG_BIN = os.getenv("FFMPEG_BIN", "ffmpeg").strip()
+_ffmpeg_env = os.getenv("FFMPEG_BIN", "").strip()
+if _ffmpeg_env:
+    FFMPEG_BIN = _ffmpeg_env
+else:
+    system_ffmpeg = shutil.which("ffmpeg")
+    FFMPEG_BIN = system_ffmpeg or imageio_ffmpeg.get_ffmpeg_exe()
 WORKDIR = Path(os.getenv("WORKDIR", "./work")).resolve()
 MAX_FRAMES = int(os.getenv("MAX_FRAMES", "10000"))
 MAX_UNPACKED_GB = Decimal(os.getenv("MAX_UNPACKED_GB", "100"))
@@ -884,9 +890,11 @@ async def main() -> None:
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     )
 
-    if shutil.which(FFMPEG_BIN) is None:
+    ffmpeg_path = Path(FFMPEG_BIN)
+    if not ffmpeg_path.exists() and shutil.which(FFMPEG_BIN) is None:
         raise RuntimeError(
-            f"FFmpeg не найден: {FFMPEG_BIN}. Установи ffmpeg или укажи FFMPEG_BIN"
+            f"FFmpeg не найден: {FFMPEG_BIN}. "
+            f"Проверь установку imageio-ffmpeg или укажи FFMPEG_BIN"
         )
 
     WORKDIR.mkdir(parents=True, exist_ok=True)
